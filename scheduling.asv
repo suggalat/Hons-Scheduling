@@ -10,7 +10,7 @@ n_cpe = 1;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 64;                      % Number of RIS elements
+N = 4;                      % Number of RIS elements
 Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
@@ -28,6 +28,7 @@ P = 1;  % Power in Watts
 B = 10e6; % bandwidth
 mod_method = 'QPSK';
 Noise_real=100;
+noise = zeros(,)
 % Calculate modulation order from modulation method
 mod_methods = {'BPSK','QPSK','8PSK','16QAM','32QAM','64QAM'};
 mod_order = find(ismember(mod_methods,mod_method));
@@ -86,16 +87,15 @@ x_s = x_cpe(:);
 %% SimRIS
 
 for iter = 1:Nsym  
-   [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
-   
-   [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
-   G1(:,:,iter) = (G11+G12)/2;
+   [H1(:,:,iter),G,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
+   G1(:,:,iter) = transpose(G);
+   [H2(:,:,iter),G,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
 end
 G1 = mean(G1,3);
 H1 = mean(H1,3);
 H2 = mean(H2,3);
-Ch_Rx1 = (G1'.*H1)';
-Ch_Rx2 = (G1'.*H2)';
+Ch_Rx1 = (G.*H1)';
+Ch_Rx2 = (G.*H2)';
 
 %% Add AWGN
 
@@ -109,11 +109,13 @@ data_pwr = mean(abs(x_s_ch1(:,1).^2));
 noise_pwr = data_pwr/10^(SNR/10);
 
 for iter = 1:Noise_real
-    noise(:,:,iter) = normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1)) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1))*1i;
+    
 end
 
-x_s_noise1 = x_s_ch1 + mean(noise,3);
-x_s_noise2 = x_s_ch2 + mean(noise,3);
+noise = normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1)) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1))*1i;
+
+x_s_noise1 = x_s_ch1 + noise;
+x_s_noise2 = x_s_ch2 + noise;
 
 % snr_mean1 = 10*log10(abs(mean(x_s_ch1.^2)/mean(noise.^2)));
 % % snr_mean1 = 10*log10(mean(abs(x_s_ch1.^2))/mean(abs(noise1.^2)));

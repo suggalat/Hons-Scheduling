@@ -10,7 +10,7 @@ n_cpe = 1;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 64;                      % Number of RIS elements
+N = 4;                      % Number of RIS elements
 Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
@@ -20,10 +20,10 @@ Had_flip = Had;
 Had_flip(1,:) = -1;
 all_config = [Had, Had_flip, -Had, -Had_flip];              % 4N possible RIS configurations
 RIS_config = hadamard(N);   % 'N' RIS configurations used for channel estimation
-H1 = zeros(N,Nt,Nsym);
-G1 = zeros(Nr,N,Nsym);
-D  = zeros(Nr,Nt,Nsym);
-H2 = zeros(N,Nt,Nsym);
+% H1 = zeros(N,Nt,Nsym);
+% G1 = zeros(Nr,N,Nsym);
+% D  = zeros(Nr,Nt,Nsym);
+% H2 = zeros(N,Nt,Nsym);
 P = 1;  % Power in Watts
 B = 10e6; % bandwidth
 mod_method = 'QPSK';
@@ -85,15 +85,15 @@ x_s = x_cpe(:);
 
 %% SimRIS
 
-for iter = 1:Nsym  
-   [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
-   
-   [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
-   G1(:,:,iter) = (G11+G12)/2;
-end
-G1 = mean(G1,3);
-H1 = mean(H1,3);
-H2 = mean(H2,3);
+% for iter = 1:Nsym  
+%    [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
+%    
+%    [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
+%    G1(:,:,iter) = (G11+G12)/2;
+% end
+% G1 = mean(G1,3);
+% H1 = mean(H1,3);
+% H2 = mean(H2,3);
 Ch_Rx1 = (G1'.*H1)';
 Ch_Rx2 = (G1'.*H2)';
 
