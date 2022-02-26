@@ -1,4 +1,5 @@
-clear;
+% Execute this program, only after executing scheduling.m
+% This program inputs G,H and other parameters obtained in scheduling.m
 Tx_xyz = [1,1,1];           % Tx co-ordinates
 Rx1_xyz = [30,1,1];         % Rx-1 co-ordinates
 Rx2_xyz = [29,3,1];         % Rx-2 co-ordinates
@@ -11,7 +12,7 @@ n_cpe = 0;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 4;                      % Number of RIS elements
+% N = 16;                      % Number of RIS elements
 Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
@@ -20,7 +21,13 @@ Scenario=1;                 % 1 (RIS in xz plane - left side wall) or 2 (RIS in 
 % Had_flip = Had;
 % Had_flip(1,:) = -1;
 % RIS_config = [Had, Had_flip, -Had, -Had_flip];              % 4N possible RIS configurations
-RIS_config = hadamard(N);   % 'N' RIS configurations used for channel estimation
+
+C = cell(1,N);
+[C{:}] = ndgrid([1,-1]);
+C = cellfun(@(a)a(:),C,'Uni',0);
+M = [C{:}];
+
+RIS_config = M';   % 'N' RIS configurations used for channel estimation
 H1 = zeros(N,Nt,Nsym);
 G1 = zeros(Nr,N,Nsym);
 D  = zeros(Nr,Nt,Nsym);
@@ -87,16 +94,16 @@ x_s = x_cpe(:);
 
 %% SimRIS
 
-for iter = 1:Nsym  
-   [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
-   [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
-   G1(:,:,iter) = (G11+G12)/2;
-end
-G1 = mean(G1,3);
-H1 = mean(H1,3);
-H2 = mean(H2,3);
-Ch_Rx1 = (G1'.*H1)';
-Ch_Rx2 = (G1'.*H2)';
+% for iter = 1:Nsym  
+%    [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
+%    [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
+%    G1(:,:,iter) = (G11+G12)/2;
+% end
+% G1 = mean(G1,3);
+% H1 = mean(H1,3);
+% H2 = mean(H2,3);
+% Ch_Rx1 = (G1'.*H1)';
+% Ch_Rx2 = (G1'.*H2)';
 
 %% Add AWGN
 
@@ -111,7 +118,10 @@ noise_pwr = data_pwr/10^(SNR/10);
 
 [sizeX_row,sizeX_col]=size(x_s_ch1);
 noise = zeros(sizeX_row,sizeX_col,Noise_iter);
-
+x_s_noise1=zeros(sizeX_row,sizeX_col,Noise_iter);
+x_s_noise2=zeros(sizeX_row,sizeX_col,Noise_iter);
+SNR1=zeros(sizeX_col,Noise_iter);
+SNR2=zeros(sizeX_col,Noise_iter);
 for iter = 1:Noise_iter
     noise(:,:,iter) = normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1)) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1))*1i;
     x_s_noise1(:,:,iter)=x_s_ch1+noise(:,:,iter);
@@ -177,14 +187,18 @@ if(length(positive_coords)==0)
 end
 tempIn = find(selectedPoint==temp)
 selectedConfig = RIS_config(:,tempIn(1));
-figure; hold on;
-scatter(real(symbol_book(3),comple))
-quiver(0,0,real(symbol_book(3)),complex(symbol_book(3)));
+
+% quiver(0,0,real(symbol_book(3)),complex(symbol_book(3)));
 for iter=1:N
    Cons(iter)=Ch_Rx2(iter)*selectedConfig(iter)*symbol_book(3);
-   quiver(0,0,real(Cons(iter)),complex(Cons(iter)));   
+%    quiver(0,0,real(Cons(iter)),complex(Cons(iter)));   
 end
+symb=symbol_book(3);
 
+scatter(real(symb),complex(symb));
+hold on;
+scatter(real(Cons),complex(Cons));
+quiver(0,0,real(sum(Cons)),complex(sum(Cons)));
 %%  PLOTS
 figure
 plot(1:N,(Ch_Rx1),1:N,(mean(Ch_Rx1_est)));grid on
@@ -211,7 +225,7 @@ ylabel('Channel Coeff');
 title(sprintf('\\bfChannel Estimation-Rx2\n\\rm Estimation Error %e',mean(err2)));
 
 figure
-plot(1:N,SNR_Rx1,1:N,SNR_Rx2);
+plot(1:length(RIS_config),SNR_Rx1,1:length(RIS_config),SNR_Rx2);
 legend('SNR of Rx1','SNR of Rx2')
 xlabel('Index');
 ylabel('SNR(dB)');

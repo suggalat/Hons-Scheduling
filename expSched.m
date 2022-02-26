@@ -7,10 +7,10 @@ SNR_Th = 5;                 % Threshold SNR in dB
 SNR = 10;                    % SNR Without RIS in dB
 n_fft = 2;
 n_cpe = 1;
-Frequency = 6;              % Frequency in GHz
+Frequency = 6;              % Frequency in GHz  
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 4;                      % Number of RIS elements
+                      % Number of RIS elements
 Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
