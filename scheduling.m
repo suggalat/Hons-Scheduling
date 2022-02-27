@@ -5,13 +5,13 @@ Rx2_xyz = [29,3,1];         % Rx-2 co-ordinates
 RIS_xyz = [25,6,2];         % RIS co-ordinates
 K = 2;                      % Number of Subcarriers
 
-SNR = 5;                    % SNR Without RIS in dB
+SNR_Th = 5;                    % SNR Without RIS in dB
 n_fft = 2;
 n_cpe = 0;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 16;                      % Number of RIS elements
+N = 256;                      % Number of RIS elements
 Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
@@ -107,7 +107,7 @@ x_s_ch2 = (Ch_Rx2*RIS_config).*x_cpe;
 data_pwr = mean(abs(x_s_ch1(:,1).^2));
 
 %Add noise to channel
-noise_pwr = data_pwr/10^(SNR/10);
+noise_pwr = data_pwr/10^(SNR_Th/10);
 
 [sizeX_row,sizeX_col]=size(x_s_ch1);
 noise = zeros(sizeX_row,sizeX_col,Noise_iter);
@@ -171,7 +171,7 @@ positive_coords=temp(all((temp-5)>0,2),:);
 [farVal,farInd]=max(pdist2([0,0],positive_coords));
 selectedPoint = positive_coords(farInd,:);
 if(length(positive_coords)==0)
-    dist_Th=pdist2([SNR,SNR],[SNR_Rx1,SNR_Rx2]);
+    dist_Th=pdist2([SNR_Th,SNR_Th],[SNR_Rx1,SNR_Rx2]);
     [minVal,minIndex] = min(dist_Th);
     selectedPoint=[SNR_Rx1(minIndex),SNR_Rx2(minIndex)];
 end
@@ -202,8 +202,8 @@ scatter(SNR_Rx1,SNR_Rx2,'filled');
 xlabel('SNR achieved at Rx1');
 ylabel('SNR achieved at Rx2');
 hold on
-plot(floor(min_SNR):ceil(max_SNR),SNR*ones(1,ceil(max_SNR)-floor(min_SNR)+1));
-plot(SNR*ones(1,ceil(max_SNR)-floor(min_SNR)+1),floor(min_SNR):ceil(max_SNR));
+plot(floor(min_SNR):ceil(max_SNR),SNR_Th*ones(1,ceil(max_SNR)-floor(min_SNR)+1));
+plot(SNR_Th*ones(1,ceil(max_SNR)-floor(min_SNR)+1),floor(min_SNR):ceil(max_SNR));
 scatter(selectedPoint(1),selectedPoint(2),'red','filled');
 title(sprintf('\\bfSNR achieved at Rx2 vs Rx1'));
 
@@ -226,4 +226,9 @@ title(sprintf('\\bf SNR of Rx1,Rx2 in dB '));
 % X_hat_blocks1 = X_hat_blocks1./repmat(C1,1,size(X_hat_blocks1,2));
 % 
 % C2 = X_hat_blocks2(:,1)./X_blocks(:,1);
-% X_hat_blocks2 = X_hat_blocks2./repmat(C2,1,size(X_hat_blocks2,2));
+% % X_hat_blocks2 = X_hat_blocks2./repmat(C2,1,size(X_hat_blocks2,2));
+
+%  
+% A=A';370x3
+% B=B';1x3
+% x=find(ismember(A,B,'rows'));%will give you the column numbers of A that match B
