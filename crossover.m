@@ -1,5 +1,6 @@
 function [cross_c1,cross_c2] =crossover(c1,c2,prob_cross)
-    rand_val=rand(0,1);
+    load('ga.mat');
+    rand_val=rand(1,1);
     cross_c1=c1;
     cross_c2=c2;
     if(rand_val<prob_cross)

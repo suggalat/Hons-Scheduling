@@ -1,0 +1,1 @@
+best = GeneticAlgorithm(4,4,N);

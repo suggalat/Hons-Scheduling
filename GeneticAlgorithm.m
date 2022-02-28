@@ -1,6 +1,6 @@
 
 function [bestConfig]= GeneticAlgorithm(g,p,N)
-  
+
     had_matrix = hadamard(N);
     init_pop = had_matrix(:,1:p);
     bestConfig=zeros(N,1);
@@ -17,7 +17,7 @@ function [bestConfig]= GeneticAlgorithm(g,p,N)
         cross_pop=sel_pop;
         prob_cross=0.5;
         for i=1:2:p
-           [cross_pop(:,i),cross_pop(:,i+1)] = crossover(sel_pop(:,i),sel_pop(i+1),prob_cross);
+           [cross_pop(:,i),cross_pop(:,i+1)] = crossover(sel_pop(:,i),sel_pop(:,i+1),prob_cross);
         end
         mut_pop =cross_pop;
         prob_mut=0.5;
