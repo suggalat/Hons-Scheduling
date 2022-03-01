@@ -5,12 +5,14 @@ function [bestConfig]= GeneticAlgorithm(g,p,N)
     init_pop = had_matrix(:,1:p);
     bestConfig=zeros(N,1);
     bestFitness = 0;
-    for g_i =1:g 
+    for g_i =1:g       
         for b=1:p
             currentFitness = fitness(init_pop(:,b));
             if(currentFitness>bestFitness)
                 bestFitness = currentFitness;                
-                bestConfig = init_pop(:,b)               
+                bestConfig = init_pop(:,b)   
+                g_i
+                b
             end            
         end
         sel_pop=selection(init_pop);    

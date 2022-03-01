@@ -2,7 +2,7 @@ clear;
 Tx_xyz = [1,1,1];           % Tx co-ordinates
 Rx1_xyz = [30,1,1];         % Rx-1 co-ordinates
 Rx2_xyz = [29,3,1];         % Rx-2 co-ordinates
-RIS_xyz = [25,6,2];         % RIS co-ordinates
+RIS_xyz = [25,6,3];         % RIS co-ordinates
 K = 2;                      % Number of Subcarriers
 
 SNR_Th = 5;                    % SNR Without RIS in dB
@@ -11,8 +11,8 @@ n_cpe = 0;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 256;                      % Number of RIS elements
-Nsym = 1000;                % Number of Realisations
+N = 1024;                      % Number of RIS elements
+Nsym = 10000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
 Scenario=1;                 % 1 (RIS in xz plane - left side wall) or 2 (RIS in yz plane - opposite wall)
@@ -29,7 +29,7 @@ P = 1;  % Power in Watts
 B = 10e6; % bandwidth
 mod_method = 'QPSK';
 
-Noise_iter=100;
+Noise_iter=1000;
 % Calculate modulation order from modulation method
 mod_methods = {'BPSK','QPSK','8PSK','16QAM','32QAM','64QAM'};
 mod_order = find(ismember(mod_methods,mod_method));
@@ -227,7 +227,10 @@ ylabel('SNR(dB)');
 title(sprintf('\\bf SNR of Rx1,Rx2 in dB '));
 
 figure
-heatmap(heat_best');
+hm=heatmap(heat_best');
+hm.Title = 'Reflection Coefficients of RIS elements';
+hm.XLabel = 'Column Index';
+hm.YLabel = 'Row Index';
 % C1 = X_hat_blocks1(:,1)./X_blocks(:,1);
 % X_hat_blocks1 = X_hat_blocks1./repmat(C1,1,size(X_hat_blocks1,2));
 % 
