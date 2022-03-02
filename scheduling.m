@@ -11,8 +11,8 @@ n_cpe = 0;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 1024;                      % Number of RIS elements
-Nsym = 10000;                % Number of Realisations
+N = 4;                      % Number of RIS elements
+Nsym = 1000;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
 Scenario=1;                 % 1 (RIS in xz plane - left side wall) or 2 (RIS in yz plane - opposite wall)
@@ -29,7 +29,7 @@ P = 1;  % Power in Watts
 B = 10e6; % bandwidth
 mod_method = 'QPSK';
 
-Noise_iter=1000;
+Noise_iter=100;
 % Calculate modulation order from modulation method
 mod_methods = {'BPSK','QPSK','8PSK','16QAM','32QAM','64QAM'};
 mod_order = find(ismember(mod_methods,mod_method));
@@ -141,8 +141,12 @@ x_p_cpr1 = x_p1(n_cpe+1:end,:);
 % Move to frequency domain
 X_hat_blocks1 = fft(x_p_cpr1);
 
+%% Least Squares
 % K1 = lsqr(X_blocks,X_hat_blocks1);
-K1 = X_hat_blocks1./X_blocks;
+K1=zeros(1,size(RIS_config,2));
+for iter =1:N
+   K1(iter)=lsqr(X_blocks(:,iter),X_hat_blocks1(:,iter));
+end
 Ch_Rx1_est = K1/RIS_config; 
 Rx1_rec = X_hat_blocks1./K1; % Received Rx1
 err1 = mean(abs(Ch_Rx1_est-Ch_Rx1));
@@ -153,7 +157,11 @@ x_p_cpr2 = x_p2(n_cpe+1:end,:);
 % Move to frequency domain
 X_hat_blocks2 = fft(x_p_cpr2);
 % K2 = lsqr(X_blocks,X_hat_blocks2);
-K2 = X_hat_blocks2./X_blocks;
+K2=zeros(1,size(RIS_config,2));
+for iter =1:N
+   K2(iter)=lsqr(X_blocks(:,iter),X_hat_blocks1(:,iter));
+end
+
 Ch_Rx2_est = K2/RIS_config;
 Rx2_rec = X_hat_blocks2./K2;
 err2 = mean(abs(Ch_Rx2_est-Ch_Rx2));
@@ -196,7 +204,7 @@ quiver(0,0,real(sum(Cons)),complex(sum(Cons)));
 
 %%  PLOTS
 figure
-plot(1:N,(Ch_Rx1),1:N,(mean(Ch_Rx1_est)));grid on
+plot(1:N,(Ch_Rx1),1:N,((Ch_Rx1_est)));grid on
 legend('original','estimated')
 xlabel('Index');
 ylabel('Channel Coeff');
@@ -213,7 +221,7 @@ scatter(selectedPoint(1),selectedPoint(2),'red','filled');
 title(sprintf('\\bfSNR achieved at Rx2 vs Rx1'));
 
 figure
-plot(1:N,(Ch_Rx2),1:N,(mean(Ch_Rx2_est)));grid on
+plot(1:N,(Ch_Rx2),1:N,((Ch_Rx2_est)));grid on
 legend('original','estimated')
 xlabel('Index');
 ylabel('Channel Coeff');
