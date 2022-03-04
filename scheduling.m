@@ -11,8 +11,8 @@ n_cpe = 0;
 Frequency = 6;              % Frequency in GHz
 ArrayType = 2;              % Uniform Linear Array=1 or Uniform Planar Array=2
 Environment = 1;            % 1 Indoor (InH - Indoor Office) / 2 Outdoor (UMi - Street Canyon)
-N = 4;                      % Number of RIS elements
-Nsym = 1000;                % Number of Realisations
+N = 16;                      % Number of RIS elements
+Nsym = 1;                % Number of Realisations
 Nt = 1;                     % Number of antennas at Tx
 Nr = 1;                     % Number of antennas at Rx
 Scenario=1;                 % 1 (RIS in xz plane - left side wall) or 2 (RIS in yz plane - opposite wall)
@@ -27,6 +27,7 @@ D  = zeros(Nr,Nt,Nsym);
 H2 = zeros(N,Nt,Nsym);
 P = 1;  % Power in Watts
 B = 10e6; % bandwidth
+symbolTime = 1/B; %There are B symbols per second
 mod_method = 'QPSK';
 
 Noise_iter=100;
@@ -72,6 +73,7 @@ if mod_order == 5
 end
 
 X =sqrt(P/B)* [symbol_book(1);symbol_book(3)]; % Modulate data according to symbol_book
+% X = sqrt(P/B)*repmat(symbol_book(1),K,1);
 X = repmat(X,1,length(RIS_config));
             
 %% Use IFFT to move to time domain
@@ -84,46 +86,69 @@ x = ifft(X_blocks);
 % Add cyclic prefix extension and shift from parellel to serial
 x_cpe = [x(end-n_cpe+1:end,:);x];
 % x_s = x_cpe(:);
+%% Theoretical thermal noise variance at room temperature for 10kHz Channel is -134 dBm /-164 dBW
+noise_pwr=db2pow(-164);
 
 %% SimRIS Channel
+x_s_ch1=zeros(size(x_cpe,1),size(x_cpe,2),Nsym);
+x_s_ch2=zeros(size(x_cpe,1),size(x_cpe,2),Nsym);
 
 for iter = 1:Nsym  
    [H1(:,:,iter),G11,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx1_xyz,RIS_xyz);
    [H2(:,:,iter),G12,D(:,:,iter)] = SimRIS_v18_1(Environment,Scenario,Frequency,ArrayType,N,Nt,Nr,Tx_xyz,Rx2_xyz,RIS_xyz);   
    G1(:,:,iter) = (G11+G12)/2;
+   Ch_Rx1=(G1(:,:,iter)'.*H1(:,:,iter))';
+   Ch_Rx2=(G1(:,:,iter)'.*H2(:,:,iter))';   
+%    Multiply signal with channel
+   x_s_ch1(:,:,iter)= (Ch_Rx1*RIS_config).*x_cpe;
+   x_s_ch2(:,:,iter)= (Ch_Rx2*RIS_config).*x_cpe;
+%    AWGN noise
+%    noise1 = wgn(size(x_s_ch1(:,:,iter),1),size(x_s_ch1(:,:,iter),2),-164);
+%    noise2 = wgn(size(x_s_ch2(:,:,iter),1),size(x_s_ch2(:,:,iter),2),-164);
+   noise1= normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1(:,:,iter))) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1(:,:,iter)))*1i;
+   noise2= normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1(:,:,iter))) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1(:,:,iter)))*1i;
+% Compute SNR with obtained signal and noise
+   SNR1(:,iter)=10*log10(abs(mean(x_s_ch1(:,:,iter).^2)./mean(noise1.^2)));
+   SNR2(:,iter)=10*log10(abs(mean(x_s_ch2(:,:,iter).^2)./mean(noise2.^2)));
+% Add noise to the signal 
+   x_s_noise1(:,:,iter)=x_s_ch1(:,:,iter)+noise1;
+   x_s_noise2(:,:,iter)=x_s_ch2(:,:,iter)+noise2;
 end
-G1 = mean(G1,3);
-H1 = mean(H1,3);
-H2 = mean(H2,3);
-Ch_Rx1 = (G1'.*H1)';
-Ch_Rx2 = (G1'.*H2)';
-
-%% Add AWGN
-
-x_s_ch1 = (Ch_Rx1*RIS_config).*x_cpe;
-x_s_ch2 = (Ch_Rx2*RIS_config).*x_cpe;
-
-% Calculate data power
-data_pwr = mean(abs(x_s_ch1(:,1).^2));
-
-%Add noise to channel
-noise_pwr = data_pwr/10^(SNR_Th/10);
-
-[sizeX_row,sizeX_col]=size(x_s_ch1);
-noise = zeros(sizeX_row,sizeX_col,Noise_iter);
-
-for iter = 1:Noise_iter
-    noise(:,:,iter) = normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1)) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1))*1i;
-    x_s_noise1(:,:,iter)=x_s_ch1+noise(:,:,iter);
-    SNR1(:,iter)=10*log10(abs(mean(x_s_ch1.^2)./mean(noise(:,:,iter).^2)));
-    x_s_noise2(:,:,iter)=x_s_ch2+noise(:,:,iter);
-    SNR2(:,iter)=10*log10(abs(mean(x_s_ch2.^2)./mean(noise(:,:,iter).^2)));
-end
-
+% G1 = mean(G1,3);
+% H1 = mean(H1,3);
+% H2 = mean(H2,3);
+% Ch_Rx1 = (G1'.*H1)';
+% Ch_Rx2 = (G1'.*H2)';
+x_s_noise1 = mean(x_s_noise1,3);
+x_s_noise2 = mean(x_s_noise2,3);
 SNR_Rx1 = mean(SNR1,2);
 SNR_Rx2 = mean(SNR2,2);
-x_s_noise1=mean(x_s_noise1,3);
-x_s_noise2=mean(x_s_noise2,3);
+%% Add AWGN
+% 
+% x_s_ch1 = (Ch_Rx1*RIS_config).*x_cpe;
+% x_s_ch2 = (Ch_Rx2*RIS_config).*x_cpe;
+
+% Calculate data power
+% data_pwr = mean(abs(x_s_ch1(:,1).^2));
+
+%Add noise to channel
+% noise_pwr = data_pwr/10^(SNR_Th/10);
+
+% [sizeX_row,sizeX_col]=size(x_s_ch1);
+% noise = zeros(sizeX_row,sizeX_col,Noise_iter);
+
+% for iter = 1:Noise_iter
+%     noise(:,:,iter) = normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1)) + normrnd(0,sqrt(noise_pwr/2),size(x_s_ch1))*1i;
+%     x_s_noise1(:,:,iter)=x_s_ch1+noise(:,:,iter);
+%     SNR1(:,iter)=10*log10(abs(mean(x_s_ch1.^2)./mean(noise(:,:,iter).^2)));
+%     x_s_noise2(:,:,iter)=x_s_ch2+noise(:,:,iter);
+%     SNR2(:,iter)=10*log10(abs(mean(x_s_ch2.^2)./mean(noise(:,:,iter).^2)));
+% end
+
+% SNR_Rx1 = mean(SNR1,2);
+% SNR_Rx2 = mean(SNR2,2);
+% x_s_noise1=mean(x_s_noise1,3);
+% x_s_noise2=mean(x_s_noise2,3);
 
 % x_s_noise1 = x_s_ch1 + mean(noise,3);
 % x_s_noise2 = x_s_ch2 + mean(noise,3);
